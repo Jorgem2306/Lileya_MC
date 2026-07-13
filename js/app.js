@@ -1,52 +1,57 @@
-/**
- * CONFESIONARIO ANÓNIMO DE LILEYA_MC — app.js
- * Lógica del formulario + medidas de seguridad en cliente.
- */
-
 'use strict';
 
 /* ── CONFIGURACIÓN ─────────────────────────────────────────── */
-const SCRIPT_URL   = 'https://script.google.com/macros/s/AKfycbwbq0AvLedkSaZ6bEaT_xsIiPtDH8Hx7DfRg9q9RM9IDWM69bmf-MzVCc-uqUYLXt5Twg/exec';
-const MIN_CHARS    = 10;      // mínimo de caracteres requeridos
-const MAX_CHARS    = 1000;    // máximo de caracteres permitidos
-const COOLDOWN_SEC = 30;      // segundos de espera entre envíos
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwbq0AvLedkSaZ6bEaT_xsIiPtDH8Hx7DfRg9q9RM9IDWM69bmf-MzVCc-uqUYLXt5Twg/exec';
+const COOLDOWN_SEC = 10;      // segundos de espera entre envíos
 
-/* ── FONDO DE NUBES ────────────────────────────────────────── */
-document.documentElement.style.setProperty(
-    '--fondo-imagen-url',
-    'url("nube-removebg-preview.png")'
-);
+/* ── NUBES INDIVIDUALES ANIMADAS ───────────────────────────── */
+(function initClouds() {
+    const layer = document.getElementById('clouds-layer');
+    if (!layer) return;
 
-/* ── PARTÍCULAS FLOTANTES ──────────────────────────────────── */
-(function initParticles() {
-    const container = document.getElementById('particles');
-    if (!container) return;
+    const IMG = 'nube-removebg-preview.png';
 
-    const emojis = ['✨', '🌸', '💫', '⭐', '🔮', '💜', '🌙', '🦋'];
+    // Bandas verticales — aseguran que las nubes no se sobrepongan
+    // Más bandas = más nubes distribuidas por la pantalla
+    const BANDS = [
+        { minY: 0, maxY: 9 },
+        { minY: 9, maxY: 18 },
+        { minY: 18, maxY: 27 },
+        { minY: 27, maxY: 36 },
+        { minY: 36, maxY: 45 },
+        { minY: 45, maxY: 54 },
+        { minY: 54, maxY: 63 },
+        { minY: 63, maxY: 72 },
+        { minY: 72, maxY: 81 },
+        { minY: 81, maxY: 90 },
+    ];
 
-    function spawnParticle() {
-        const el = document.createElement('span');
-        el.className = 'particle';
-        el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    // 3 nubes por banda = 30 nubes en total
+    BANDS.forEach((band) => {
+        const count = 3;
+        for (let c = 0; c < count; c++) {
+            const img = document.createElement('img');
+            img.src = IMG;
+            img.className = 'cloud-item';
+            img.alt = '';
 
-        const leftPct  = Math.random() * 100;
-        const duration = 8 + Math.random() * 14;   // 8–22 s
-        const delay    = Math.random() * 10;         // 0–10 s
-        const size     = 0.9 + Math.random() * 1;   // 0.9–1.9 rem
+            const size = 70 + Math.random() * 130;           // 70–200px
+            const topPct = band.minY + Math.random() * (band.maxY - band.minY);
+            const duration = 25 + Math.random() * 45;            // 25–70s
+            const delay = -(Math.random() * duration);         // inicio distribuido
+            const opacity = 0.10 + Math.random() * 0.15;        // 0.10–0.25
 
-        el.style.cssText = `
-            left: ${leftPct}%;
-            animation-duration: ${duration}s;
-            animation-delay: ${delay}s;
-            font-size: ${size}rem;
-        `;
-        container.appendChild(el);
-        el.addEventListener('animationend', () => el.remove(), { once: true });
-    }
-
-    // Arrancar con algunas partículas ya en pantalla
-    for (let i = 0; i < 8; i++) spawnParticle();
-    setInterval(spawnParticle, 1800);
+            img.style.cssText = `
+                top: ${topPct}%;
+                width: ${size}px;
+                height: auto;
+                opacity: ${opacity};
+                animation-duration: ${duration}s;
+                animation-delay: ${delay}s;
+            `;
+            layer.appendChild(img);
+        }
+    });
 })();
 
 /* ── UTILIDADES DE SEGURIDAD ───────────────────────────────── */
@@ -66,25 +71,18 @@ function sanitizeInput(text) {
 }
 
 /**
- * Validación básica antes de enviar.
+ * Validación básica antes de enviar (sin mínimo ni máximo de chars).
  * Retorna { ok: boolean, message: string }
  */
 function validateInput(text) {
-    if (text.length < MIN_CHARS) {
-        return { ok: false, message: `Tu confesión debe tener al menos ${MIN_CHARS} caracteres. ¡Suéltalo todo! 😤` };
-    }
-    if (text.length > MAX_CHARS) {
-        return { ok: false, message: `Máximo ${MAX_CHARS} caracteres. ¡Sé conciso! 🤏` };
-    }
-    // Detectar si solo hay espacios / emojis sin contenido real
-    if (text.replace(/\s/g, '').length < 5) {
-        return { ok: false, message: 'Escribe algo de verdad, ¡no te me escapes! 🧐' };
+    if (!text || text.replace(/\s/g, '').length === 0) {
+        return { ok: false, message: '¡Escribe algo antes de confesar! 🧐' };
     }
     return { ok: true, message: '' };
 }
 
 /* ── RATE LIMITING (cliente) ───────────────────────────────── */
-let lastSubmitTime   = 0;
+let lastSubmitTime = 0;
 let cooldownInterval = null;
 
 function isOnCooldown() {
@@ -98,7 +96,7 @@ function getRemainingSeconds() {
 function startCooldownUI() {
     const badge = document.getElementById('cooldownBadge');
     const label = document.getElementById('cooldownLabel');
-    const btn   = document.getElementById('submitBtn');
+    const btn = document.getElementById('submitBtn');
 
     if (!badge || !label || !btn) return;
 
@@ -119,33 +117,6 @@ function startCooldownUI() {
 
     tick();
     cooldownInterval = setInterval(tick, 500);
-}
-
-/* ── BARRA DE CARACTERES ───────────────────────────────────── */
-function initCharCounter() {
-    const textarea = document.getElementById('texto_entrada_id');
-    const fill     = document.getElementById('charBarFill');
-    const counter  = document.getElementById('charCounter');
-    if (!textarea || !fill || !counter) return;
-
-    textarea.addEventListener('input', () => {
-        const len  = textarea.value.length;
-        const pct  = Math.min((len / MAX_CHARS) * 100, 100);
-
-        fill.style.width = pct + '%';
-        counter.textContent = `${len} / ${MAX_CHARS}`;
-
-        fill.className    = 'char-bar-fill';
-        counter.className = 'char-count';
-
-        if (pct >= 90) {
-            fill.classList.add('danger');
-            counter.classList.add('danger');
-        } else if (pct >= 70) {
-            fill.classList.add('warn');
-            counter.classList.add('warn');
-        }
-    });
 }
 
 /* ── CONFETI ───────────────────────────────────────────────── */
@@ -173,8 +144,8 @@ function showFeedback(message, type) {
     const el = document.getElementById('feedback');
     if (!el) return;
 
-    el.textContent  = message;
-    el.className    = `${type} visible`;
+    el.textContent = message;
+    el.className = `${type} visible`;
 
     // Scroll suave hacia el feedback
     el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -190,7 +161,42 @@ function setLoading(visible) {
     const overlay = document.getElementById('loadingOverlay');
     if (!overlay) return;
     if (visible) overlay.classList.add('visible');
-    else         overlay.classList.remove('visible');
+    else overlay.classList.remove('visible');
+}
+
+/* ── ANIMACIONES DE SECCIONES CON INTERSECTION OBSERVER ─────── */
+function initSectionAnimations() {
+    const sections = document.querySelectorAll('.section, .confession-type, .warning-text, .quote');
+    if (!sections.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                // Entra al viewport → forzar re-animación
+                entry.target.classList.remove('anim-visible');
+                // Pequeño frame para que el browser detecte el cambio de clase
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        entry.target.classList.add('anim-visible');
+                    });
+                });
+            } else {
+                // Sale del viewport → resetear para que vuelva a animarse
+                entry.target.classList.remove('anim-visible');
+            }
+        });
+    }, { threshold: 0.12 });
+
+    sections.forEach(el => observer.observe(el));
+}
+
+/* ── ANIMACIÓN DE LISTA (reglas y demás) ───────────────────── */
+function initListItemAnimations() {
+    const items = document.querySelectorAll('li');
+    items.forEach((li, i) => {
+        li.style.setProperty('--li-delay', `${i * 0.07}s`);
+        li.classList.add('anim-li');
+    });
 }
 
 /* ── SUBMIT ────────────────────────────────────────────────── */
@@ -209,8 +215,8 @@ function initForm() {
         }
 
         // ── Obtener y sanitizar texto ───────────────────────
-        const textarea  = document.getElementById('texto_entrada_id');
-        const rawText   = textarea.value;
+        const textarea = document.getElementById('texto_entrada_id');
+        const rawText = textarea.value;
         const cleanText = sanitizeInput(rawText);
 
         // ── Validar ─────────────────────────────────────────
@@ -232,7 +238,7 @@ function initForm() {
 
             const response = await fetch(SCRIPT_URL, {
                 method: 'POST',
-                body:   formData
+                body: formData
             });
 
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -244,12 +250,6 @@ function initForm() {
                 launchConfetti();
                 showFeedback('✅ ¡Confesión enviada y guardada anónimamente! 🤫', 'success');
                 form.reset();
-                // Resetear barra de caracteres
-                const fill    = document.getElementById('charBarFill');
-                const counter = document.getElementById('charCounter');
-                if (fill)    { fill.style.width = '0%'; fill.className = 'char-bar-fill'; }
-                if (counter) { counter.textContent = `0 / ${MAX_CHARS}`; counter.className = 'char-count'; }
-
                 startCooldownUI();
             } else {
                 throw new Error(data.message || 'Respuesta inesperada del servidor.');
@@ -267,6 +267,7 @@ function initForm() {
 
 /* ── INIT ──────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-    initCharCounter();
+    initSectionAnimations();
+    initListItemAnimations();
     initForm();
 });
