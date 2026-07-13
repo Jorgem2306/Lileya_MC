@@ -58,17 +58,17 @@
 
 @keyframes neonGlow {
     0% {
-        text-shadow: 0 0 6px var(--color-secundario), 0 0 12px var(--color-principal);
+        text-shadow: 2px 2px 0 var(--color-principal), 0 0 4px var(--color-secundario);
         transform: scale(1);
     }
 
     50% {
-        text-shadow: 0 0 20px var(--color-cian), 0 0 40px var(--color-secundario), 0 0 60px var(--color-principal);
-        transform: scale(1.02);
+        text-shadow: 2px 2px 0 var(--color-principal), 0 0 10px var(--color-secundario), 0 0 18px var(--color-cian);
+        transform: scale(1.01);
     }
 
     100% {
-        text-shadow: 0 0 6px var(--color-secundario), 0 0 12px var(--color-principal);
+        text-shadow: 2px 2px 0 var(--color-principal), 0 0 4px var(--color-secundario);
         transform: scale(1);
     }
 }
@@ -272,7 +272,7 @@ h1 {
     color: var(--color-secundario);
     text-shadow: 2px 2px 0 var(--color-principal);
     margin-bottom: 6px;
-    animation: neonGlow 2.5s infinite alternate ease-in-out;
+    animation: neonGlow 5s infinite alternate ease-in-out;
     line-height: 1.2;
 }
 
@@ -530,7 +530,7 @@ textarea::placeholder {
     letter-spacing: 0.5px;
     transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
     box-shadow: 0 5px 0 var(--color-principal);
-    animation: pulseButton 2.5s infinite;
+    animation: pulseButton 4.5s infinite;
     position: relative;
     overflow: hidden;
     touch-action: manipulation;
